@@ -1,0 +1,9 @@
+# Sistem / Editör
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Gizli bilgiler (eklersen)
+.env
+*.local

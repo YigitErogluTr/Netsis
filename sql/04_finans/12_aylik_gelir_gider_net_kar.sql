@@ -1,0 +1,40 @@
+/* 12 - AYLIK GELİR / GİDER / NET KÂR */
+
+WITH HAREKETLER AS (
+    SELECT
+        DATEFROMPARTS(YEAR(f.TARIH), MONTH(f.TARIH), 1) AS Donem,
+        p.HESAP_KODU,
+        f.BA,
+        f.TUTAR
+    FROM TBLMUHFIS f
+    JOIN TBLMUPLAN p ON f.HES_KOD = p.HESAP_KODU
+    WHERE f.TARIH BETWEEN {{TARIH_BAS}} AND {{TARIH_BIT}}
+),
+GELIR AS (
+    SELECT
+        Donem,
+        SUM(CASE WHEN BA='2' THEN TUTAR ELSE -TUTAR END) AS GelirToplam
+    FROM HAREKETLER
+    WHERE LEFT(HESAP_KODU,3) BETWEEN '600' AND '609'
+    GROUP BY Donem
+),
+GIDER AS (
+    SELECT
+        Donem,
+        SUM(CASE WHEN BA='1' THEN TUTAR ELSE -TUTAR END) AS GiderToplam
+    FROM HAREKETLER
+    WHERE LEFT(HESAP_KODU,3) IN ('610','611')
+       OR LEFT(HESAP_KODU,3) BETWEEN '620' AND '639'
+       OR LEFT(HESAP_KODU,3) BETWEEN '650' AND '659'
+       OR LEFT(HESAP_KODU,3) BETWEEN '660' AND '669'
+       OR LEFT(HESAP_KODU,3) BETWEEN '680' AND '689'
+    GROUP BY Donem
+)
+SELECT
+    COALESCE(g.Donem, d.Donem) AS Donem,
+    ISNULL(g.GelirToplam,0) AS GelirToplam,
+    ISNULL(d.GiderToplam,0) AS GiderToplam,
+    ISNULL(g.GelirToplam,0) - ISNULL(d.GiderToplam,0) AS NetKarZarar
+FROM GELIR g
+FULL OUTER JOIN GIDER d ON g.Donem = d.Donem
+ORDER BY Donem;

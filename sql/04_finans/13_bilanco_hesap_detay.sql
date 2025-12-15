@@ -1,0 +1,17 @@
+/* 13 - BİLANÇO HESAP DETAY (Borç/Alacak/Net) */
+
+SELECT
+    CASE WHEN p.HS_BLKZ='A' THEN 'AKTİF'
+         WHEN p.HS_BLKZ='P' THEN 'PASİF'
+         ELSE 'DİĞER' END AS HesapGrubu,
+    p.HESAP_KODU AS HesapKodu,
+    REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(p.HS_ADI,'Ð','Ğ'),'Ý','İ'),'Þ','Ş'),'ð','ğ'),'ý','ı'),'þ','ş') AS HesapAdi,
+    SUM(CASE WHEN f.BA='1' THEN f.TUTAR ELSE 0 END) AS ToplamBorc,
+    SUM(CASE WHEN f.BA='2' THEN f.TUTAR ELSE 0 END) AS ToplamAlacak,
+    SUM(CASE WHEN f.BA='1' THEN f.TUTAR ELSE -f.TUTAR END) AS NetBakiye
+FROM TBLMUHFIS f
+JOIN TBLMUPLAN p ON f.HES_KOD = p.HESAP_KODU
+WHERE f.TARIH BETWEEN {{TARIH_BAS}} AND {{TARIH_BIT}}
+  AND p.HS_BLKZ IN ('A','P')
+GROUP BY p.HESAP_KODU, p.HS_ADI, p.HS_BLKZ
+ORDER BY HesapGrubu, HesapKodu;
