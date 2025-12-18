@@ -1,103 +1,59 @@
-# SQL Araç Seti (Genel / Çoklu Şirket)
+# SQL Araç Seti (Genel / Çoklu Şirket – NETSİS ERP)
 
-Bu repo; **2 farklı şirket/veritabanı** için kullanılabilen ama **hiçbir şirket adı / veritabanı adı / özel kod** içermeyen,
-tamamen **placeholder** tabanlı SQL sorgularını içerir.
+Bu repo; **birden fazla şirket / veritabanı** üzerinde çalışabilecek şekilde tasarlanmış,
+**hiçbir şirket adı, veritabanı adı veya firmaya özel kod içermeyen**, tamamen
+**placeholder tabanlı** SQL sorgularından oluşur.
 
-Amaç:
-- **Ana Veriler:** Stok/Cari kalite kontrolleri (kod doluluk, hiyerarşi, hareket var mı)
-- **Satış/Alış:** Detay raporlar (kur çevirimli)
-- **Stok:** Seri/Lot bazlı anlık stok ve envanter çıktıları
-- **Finans:** Gelir tablosu, bilanço, aylık net kâr
+Amaç; NETSİS ERP üzerinde çalışan danışmanlar, raporlama ekipleri ve BI geliştiricileri için
+**tekrar kullanılabilir, standart ve güvenli** bir SQL araç seti sunmaktır.
 
-✅ Güvenli paylaşım: Dosyalarda şirket ismi yoktur. Sadece `{{...}}` placeholder vardır.
-
----
-
-## Hızlı Başlangıç
-
-1) Repo’yu klonla
-2) `sql/00_konfigurasyon/00_placeholderlar.md` içindeki placeholder’ları kendi ortamına göre belirle
-3) `.sql` dosyalarında Replace/Find ile değiştir
-4) SQL Server üzerinde çalıştır
-
-Örnek:
-- `{{VT_A}}` → `COMPANYA2025`
-- `{{VT_B}}` → `COMPANYB2025`
-- `{{SIRKET_A}}` → `SIRKET_A`
-- `{{SIRKET_B}}` → `SIRKET_B`
-- `{{YIL}}` → `2025`
-- `{{TARIH_BAS}}` → `'2025-01-01'`
-- `{{TARIH_BIT}}` → `'2025-12-31'`
-- `{{KUR_TABLOSU}}` → `dbo.KUR_TABLO`
-
----
-### 📂 SQL Araç Seti Yapısı
-
-- **00_konfigurasyon**
-  - Placeholder ve parametreleme mantığı
-
-- **01_ana_veriler**
-  - Stok, cari ve kod hiyerarşisi kontrolleri
-
-- **02_stok**
-  - Envanter, stok bakiye, maliyet, seri/lot izleme
-
-- **03_satis_alis**
-  - Satış, iade, alış ve cari bakiye analizleri
-
-- **04_finans**
-  - Gelir tablosu, bilanço, banka, çek/senet ve dekont bazlı raporlar
-sql/
-├─ 00_konfigurasyon/
-│  └─ 00_placeholderlar.md
-│
-├─ 01_ana_veriler/
-│  ├─ 01_stok_kart_hareket_kod_doluluk.sql
-│  ├─ 02_hareketi_olan_cariler.sql
-│  ├─ 03_cari_ust_kod_esleme.sql
-│  └─ 04_stok_grup_kod_hiyerarsisi.sql
-│
-├─ 02_stok/
-│  ├─ 01_stok_karti_envanter_gorsel.sql
-│  ├─ 02_stok_bakiye_son_giris_nf_satis_fiyat.sql
-│  ├─ 03_toplam_stok_maliyeti_doviz_bazli.sql
-│  ├─ 04_seri_lot_bazli_anlik_stok.sql
-│  ├─ 05_seri_hangi_cariye_hangi_belge.sql
-│  └─ 06_seri_fiyat_doviz_bilgisi.sql
-│
-├─ 03_satis_alis/
-│  ├─ 01_satis_ve_satis_iade_detay_doviz_cevrimli.sql
-│  ├─ 02_alis_ve_tedarikci_iade_doviz_cevrimli.sql
-│  ├─ 03_musteri_borc_alacak_bakiye.sql
-│  └─ 04_satici_borc_alacak_bakiye.sql
-│
-├─ 04_finans/
-│  ├─ 01_gelir_tablosu_ozet.sql
-│  ├─ 02_bilanco_ozet.sql
-│  ├─ 03_aylik_gelir_gider_net_kar.sql
-│  ├─ 04_bilanco_hesap_detay.sql
-│  ├─ 05_banka_borc_alacak_bakiye.sql
-│  ├─ 06_faturasiz_gelir_gider_dekontlar.sql
-│  ├─ 07_musteri_cekleri_portfoy.sql
-│  ├─ 08_musteri_cekleri_tahsilde.sql
-│  ├─ 09_borc_cekleri_bekleyen.sql
-│  ├─ 10_musteri_cekleri_teminat.sql
-│  ├─ 11_musteri_cekleri_ciro_edilen.sql
-│  ├─ 12_musteri_cekleri_iade_iptal.sql
-│  ├─ 13_borc_cekleri_odenmis.sql
-│  ├─ 14_borc_cekleri_vadesi_gecen.sql
-│  └─ 15_borc_cekleri_iade_iptal.sql
-│
-├─ .gitignore
-└─ README.md
-
+> ⚠️ Bu repodaki hiçbir dosyada gerçek şirket adı veya veritabanı bulunmaz.  
+> Tüm sorgular **güvenli paylaşım** prensibiyle hazırlanmıştır.
 
 ---
 
-## Notlar
-- TR karakter düzeltme için bazı alanlarda `REPLACE(REPLACE(...))` kullanılmıştır.
-- `{{KUR_TABLOSU}}` tablosu/view beklenen kolonlar:
-  - `TARIH`
-  - `ISIM` (örn: USD / EUR gibi)
-  - `DOV_SATIS` (kur)
-- Görsel tablon yoksa `05_stok_karti_envanter_gorsel.sql` içindeki görsel join’lerini silebilirsin.
+## 🎯 Amaç ve Kapsam
+
+Bu SQL araç seti aşağıdaki ana ihtiyaçları kapsar:
+
+- **Ana Veriler**
+  - Stok ve cari kart kalite kontrolleri
+  - Kod doluluk oranları
+  - Grup / alt grup / hiyerarşi analizleri
+  - Hareketi olan ana verilerin tespiti
+
+- **Stok**
+  - Envanter ve bakiye analizleri
+  - Son giriş net fiyatı ve satış fiyatı ile maliyet hesapları
+  - Döviz bazlı stok maliyetleri
+  - Seri / lot bazlı anlık stok ve izlenebilirlik
+
+- **Satış / Alış**
+  - Satış ve satış iade detay raporları (kur çevrimli)
+  - Alış ve tedarikçi iade analizleri
+  - Müşteri ve satıcı borç / alacak bakiyeleri
+
+- **Finans**
+  - Gelir tablosu özet
+  - Bilanço özet
+  - Aylık gelir – gider – net kâr
+  - Bilanço hesap detayları
+  - Banka borç / alacak bakiyeleri
+  - Faturasız gelir–gider (dekont / manuel fiş) tespiti
+  - Müşteri ve borç çekleri (portföy, tahsil, teminat, ciro, vade, iptal)
+
+---
+
+## 🔐 Güvenli Paylaşım Prensibi
+
+- Dosyalarda **şirket ismi yoktur**
+- Veritabanı adı **placeholder** olarak tanımlıdır
+- Özel cari, stok, hesap kodları **bulunmaz**
+- Sadece aşağıdaki yapı kullanılır:
+
+```text
+{{VT_A}}      {{VT_B}}
+{{SIRKET_A}}  {{SIRKET_B}}
+{{YIL}}
+{{TARIH_BAS}} {{TARIH_BIT}}
+{{KUR_TABLOSU}}
