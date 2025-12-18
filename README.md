@@ -31,29 +31,66 @@ Amaç:
 - `{{KUR_TABLOSU}}` → `dbo.KUR_TABLO`
 
 ---
+### 📂 SQL Araç Seti Yapısı
 
-## Kategoriler
+- **00_konfigurasyon**
+  - Placeholder ve parametreleme mantığı
 
-### 01_ana_veriler
-- Stok kartları: Alış/Satış hareketi var mı + Grup/Kod doluluk
-- Hareketi olan cariler listesi
-- Cari üst kod eşlemesi
-- Stok grup–kod hiyerarşisi
+- **01_ana_veriler**
+  - Stok, cari ve kod hiyerarşisi kontrolleri
 
-### 02_stok
-- Stok kartı + envanter (onhand) + opsiyonel görsel yolu
-- Döviz tipine göre toplam stok maliyeti
-- Seri/Lot bazlı anlık stok
+- **02_stok**
+  - Envanter, stok bakiye, maliyet, seri/lot izleme
 
-### 03_satis_alis
-- Satış detay (kur çevirimli) – çoklu veritabanı
-- Alış + tedarikçi iade (kur çevirimli) – çoklu veritabanı
+- **03_satis_alis**
+  - Satış, iade, alış ve cari bakiye analizleri
 
-### 04_finans
-- Gelir tablosu özet
-- Bilanço özet
-- Aylık gelir/gider/net kâr
-- Bilanço hesap detay
+- **04_finans**
+  - Gelir tablosu, bilanço, banka, çek/senet ve dekont bazlı raporlar
+sql/
+├─ 00_konfigurasyon/
+│  └─ 00_placeholderlar.md
+│
+├─ 01_ana_veriler/
+│  ├─ 01_stok_kart_hareket_kod_doluluk.sql
+│  ├─ 02_hareketi_olan_cariler.sql
+│  ├─ 03_cari_ust_kod_esleme.sql
+│  └─ 04_stok_grup_kod_hiyerarsisi.sql
+│
+├─ 02_stok/
+│  ├─ 01_stok_karti_envanter_gorsel.sql
+│  ├─ 02_stok_bakiye_son_giris_nf_satis_fiyat.sql
+│  ├─ 03_toplam_stok_maliyeti_doviz_bazli.sql
+│  ├─ 04_seri_lot_bazli_anlik_stok.sql
+│  ├─ 05_seri_hangi_cariye_hangi_belge.sql
+│  └─ 06_seri_fiyat_doviz_bilgisi.sql
+│
+├─ 03_satis_alis/
+│  ├─ 01_satis_ve_satis_iade_detay_doviz_cevrimli.sql
+│  ├─ 02_alis_ve_tedarikci_iade_doviz_cevrimli.sql
+│  ├─ 03_musteri_borc_alacak_bakiye.sql
+│  └─ 04_satici_borc_alacak_bakiye.sql
+│
+├─ 04_finans/
+│  ├─ 01_gelir_tablosu_ozet.sql
+│  ├─ 02_bilanco_ozet.sql
+│  ├─ 03_aylik_gelir_gider_net_kar.sql
+│  ├─ 04_bilanco_hesap_detay.sql
+│  ├─ 05_banka_borc_alacak_bakiye.sql
+│  ├─ 06_faturasiz_gelir_gider_dekontlar.sql
+│  ├─ 07_musteri_cekleri_portfoy.sql
+│  ├─ 08_musteri_cekleri_tahsilde.sql
+│  ├─ 09_borc_cekleri_bekleyen.sql
+│  ├─ 10_musteri_cekleri_teminat.sql
+│  ├─ 11_musteri_cekleri_ciro_edilen.sql
+│  ├─ 12_musteri_cekleri_iade_iptal.sql
+│  ├─ 13_borc_cekleri_odenmis.sql
+│  ├─ 14_borc_cekleri_vadesi_gecen.sql
+│  └─ 15_borc_cekleri_iade_iptal.sql
+│
+├─ .gitignore
+└─ README.md
+
 
 ---
 
