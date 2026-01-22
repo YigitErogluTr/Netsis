@@ -1,0 +1,225 @@
+///Bu SQL sorgusu, NETSİS ERP kullanan firmalarda
+müşteri carilerine ait vadesi geçmiş faturaları listelemek ve
+kalan bakiye üzerinden gecikme faizi hesaplamak amacıyla hazırlanmıştır.
+
+120’li cari hesapları (müşteriler) inceler
+Fatura bazında çalışır
+Kısmi ödemeleri dikkate alır
+Vadesi geçmiş ve bakiyesi kalan faturaları listeler
+TL ve dövizli faturaları ayırır
+Ay sonu bazlı gecikme günü hesaplar
+
+Gecikmeye göre:
+TL faturalar için %5 aylık faiz
+Döviz faturalar için %1 aylık faiz
+uygular
+
+TBLCAHAR → Cari hareketler (fatura / ödeme)
+TBLCASABIT → Cari kart bilgileri
+TBLSUBELER → Şube bilgileri
+KUR → Döviz isimleri
+TBLFATUIRS → Fatura referansı
+
+ Vade ve Gecikme Mantığı
+Gecikme günü bugüne göre değil
+Önceki ayın son günü baz alınarak hesaplanır
+
+Bakiye Hesabı
+BORÇ – KAPATILMIŞ TUTAR = BAKİYE
+Dövizli işlemlerde:
+Kapanan tutar TL karşılığına çevrilerek düşülür
+Bakiyesi 10 TL’den küçük olan kayıtlar rapora dahil edilmez
+
+Faiz Hesabı
+TL faturalar
+Aylık faiz oranı: %5
+Döviz faturalar
+Aylık faiz oranı: %1
+Faiz hesaplama formülü:
+(Geciken Bakiye × Aylık Faiz Oranı / 30) × Gecikme Günü
+
+Gecikme günü:
+Minimum 1 gün
+Maksimum 30 gün ile sınırlandırılır
+
+Filtreler
+Sadece müşteri carileri (120%)
+KUR FARKI kayıtları hariç
+Sadece fatura hareketleri
+Vadesi geçmemiş kayıtlar rapora girmez///
+
+SELECT TOP 100000
+
+    /* ===== ŞUBE (NETSİS STANDART) ===== */
+    SB.SUBE_KODU,
+    SB.SUBE_ADI,
+
+    /* ===== CARİ ===== */
+    CS.CARI_KOD,
+    DBO.TRK(CS.CARI_ISIM)    AS CARI_ISIM,
+    DBO.TRK(CS.GRUP_KODU)   AS GRUP_KODU,
+    DBO.TRK(CS.RAPOR_KODU1) AS RAPORKODU1,
+
+    /* ===== FATURA ===== */
+    CH.BELGE_NO AS FATURA_NO,
+    CONVERT(VARCHAR, CH.TARIH, 104)       AS FATURA_TARIHI,
+    CONVERT(VARCHAR, CH.VADE_TARIHI, 104) AS VADE_TARIHI,
+    MONTH(CH.VADE_TARIHI) AS VADE_AY,
+    YEAR(CH.VADE_TARIHI)  AS VADE_YIL,
+
+    /* ===== GECİKME GÜNÜ (ÖNCEKİ AY SONU) ===== */
+    ISNULL(
+        CASE 
+            WHEN CH.BORC -
+                (CASE  
+                    WHEN CH.DOVIZ_TURU IN ('0','5')
+                        THEN CH.KAPATILMIS_TUTAR
+                    ELSE
+                        CH.KAPATILMIS_TUTAR *
+                        (CASE 
+                            WHEN CH.DOVIZ_TUTAR <> 0 
+                            THEN (CH.BORC / CH.DOVIZ_TUTAR)
+                        END)
+                END) > 0
+            THEN DATEDIFF(
+                    DAY,
+                    CH.VADE_TARIHI,
+                    DATEADD(DAY, -(DAY(GETDATE())), GETDATE())
+                 )
+        END, 0
+    ) AS GECIKME_GUNU,
+
+    /* ===== AY SONU REFERANS ===== */
+    CONVERT(
+        VARCHAR(16),
+        DATEADD(DAY, -(DAY(GETDATE())), GETDATE()),
+        104
+    ) AS ONCEKI_AY_SONGUNU,
+
+    /* ===== TUTARLAR ===== */
+    CH.BORC AS TUTAR,
+
+    CASE  
+        WHEN CH.DOVIZ_TURU = 0 
+            THEN CH.KAPATILMIS_TUTAR
+        ELSE 
+            CH.KAPATILMIS_TUTAR *
+            (CASE 
+                WHEN CH.DOVIZ_TUTAR <> 0 
+                THEN (CH.BORC / CH.DOVIZ_TUTAR)
+            END)
+    END AS KAPATILMIS_TUTAR,
+
+    /* ===== BAKİYE ===== */
+    (CH.BORC -
+        (CASE  
+            WHEN CH.DOVIZ_TURU IN ('0','5')
+                THEN CH.KAPATILMIS_TUTAR
+            ELSE
+                CH.KAPATILMIS_TUTAR *
+                (CASE 
+                    WHEN CH.DOVIZ_TUTAR <> 0 
+                    THEN (CH.BORC / CH.DOVIZ_TUTAR)
+                END)
+        END)
+    ) AS BAKIYE,
+
+    /* ===== TL FAİZ (%5 AYLIK) ===== */
+    ISNULL(
+        CASE 
+            WHEN CH.DOVIZ_TURU = 0 THEN
+                (((CH.BORC - CH.KAPATILMIS_TUTAR) * 0.05) / 30) *
+                CASE 
+                    WHEN DATEDIFF(
+                            DAY,
+                            CH.VADE_TARIHI,
+                            DATEADD(DAY, -(DAY(GETDATE())), GETDATE())
+                        ) <= 0 THEN 1
+                    WHEN DATEDIFF(
+                            DAY,
+                            CH.VADE_TARIHI,
+                            DATEADD(DAY, -(DAY(GETDATE())), GETDATE())
+                        ) > 30 THEN 30
+                    ELSE DATEDIFF(
+                            DAY,
+                            CH.VADE_TARIHI,
+                            DATEADD(DAY, -(DAY(GETDATE())), GETDATE())
+                        )
+                END
+        END, 0
+    ) AS TLFAIZ,
+
+    /* ===== DÖVİZ FAİZ (%1 AYLIK) ===== */
+    ISNULL(
+        CASE 
+            WHEN CH.DOVIZ_TURU <> 0 THEN
+                (((CH.DOVIZ_TUTAR - CH.KAPATILMIS_TUTAR) * 0.01) / 30) *
+                CASE 
+                    WHEN DATEDIFF(
+                            DAY,
+                            CH.VADE_TARIHI,
+                            DATEADD(DAY, -(DAY(GETDATE())), GETDATE())
+                        ) <= 0 THEN 1
+                    WHEN DATEDIFF(
+                            DAY,
+                            CH.VADE_TARIHI,
+                            DATEADD(DAY, -(DAY(GETDATE())), GETDATE())
+                        ) > 30 THEN 30
+                    ELSE DATEDIFF(
+                            DAY,
+                            CH.VADE_TARIHI,
+                            DATEADD(DAY, -(DAY(GETDATE())), GETDATE())
+                        )
+                END
+        END, 0
+    ) AS DVFAIZ,
+
+    /* ===== DÖVİZ ===== */
+    CH.DOVIZ_TURU AS DOVIZ_TIPI,
+    CASE 
+        WHEN CH.DOVIZ_TURU = 0 THEN 'TL'
+        ELSE DV.ISIM
+    END AS DOVIZ_ADI,
+
+    CH.DOVIZ_TUTAR,
+    CASE WHEN CH.DOVIZ_TURU = 0 THEN 0 ELSE CH.KAPATILMIS_TUTAR END AS DV_KAPATILMIS_TUTAR,
+    CASE WHEN CH.DOVIZ_TURU = 0 THEN 0 ELSE CH.DOVIZ_TUTAR - CH.KAPATILMIS_TUTAR END AS DV_BAKIYE,
+
+    CH.ACIKLAMA
+
+FROM TBLCAHAR CH WITH (NOLOCK)
+INNER JOIN TBLCASABIT CS WITH (NOLOCK)
+    ON CH.CARI_KOD = CS.CARI_KOD
+INNER JOIN TBLSUBELER SB WITH (NOLOCK)
+    ON SB.SUBE_KODU = CH.SUBE_KODU
+LEFT JOIN NETSIS..KUR DV WITH (NOLOCK)
+    ON DV.SIRA = CH.DOVIZ_TURU
+LEFT JOIN TBLFATUIRS FT WITH (NOLOCK)
+    ON FT.FATIRS_NO = CH.BELGE_NO
+   AND FT.CARI_KODU = CH.CARI_KOD
+
+WHERE
+    CH.ACIKLAMA NOT LIKE 'KUR FARKI'
+    AND CS.CARI_KOD LIKE '120%'              -- müşteri carileri
+    AND ISNULL(
+            (CH.BORC -
+                (CASE  
+                    WHEN CH.DOVIZ_TURU IN ('0','5')
+                        THEN CH.KAPATILMIS_TUTAR
+                    ELSE
+                        CH.KAPATILMIS_TUTAR *
+                        (CASE 
+                            WHEN CH.DOVIZ_TUTAR <> 0 
+                            THEN (CH.BORC / CH.DOVIZ_TUTAR)
+                        END)
+                END)
+            ), 0
+        ) > 10                                -- anlamlı bakiye
+    AND DATEDIFF(
+            DAY,
+            CH.VADE_TARIHI,
+            DATEADD(DAY, -(DAY(GETDATE())), GETDATE())
+        ) > 0                                -- vadesi geçmiş
+    AND (CH.ACIKLAMA LIKE 'FAT%' OR CH.ACIKLAMA LIKE 'FT.MIZ%')
+
+ORDER BY CS.CARI_KOD;
